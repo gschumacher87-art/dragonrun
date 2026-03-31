@@ -19,7 +19,7 @@ const ctx = canvas.getContext("2d");
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
-// ===== PLAYER =====
+// PLAYER
 let y = canvas.height / 2;
 let velocity = 0;
 const gravity = 0.5;
@@ -27,7 +27,7 @@ const lift = -8;
 const size = 40;
 const x = 100;
 
-// ===== INPUT =====
+// INPUT
 document.addEventListener("touchstart", flap);
 document.addEventListener("mousedown", flap);
 
@@ -35,16 +35,20 @@ function flap() {
   velocity = lift;
 }
 
-// ===== CAVE (CONTINUOUS) =====
+// CAVE
 let segments = [];
 let segmentWidth = 20;
 let speed = 3;
 
-let gap = 220;
+let gap = 200;
+
 let centerY = canvas.height / 2;
 let targetCenterY = centerY;
 
-// INIT SEGMENTS
+let roughness = 120;
+let changeRate = 0.25;
+
+// INIT
 for (let i = 0; i < canvas.width / segmentWidth + 2; i++) {
   segments.push({
     x: i * segmentWidth,
@@ -52,40 +56,41 @@ for (let i = 0; i < canvas.width / segmentWidth + 2; i++) {
   });
 }
 
-// ===== UPDATE =====
+// UPDATE
 function update() {
   velocity += gravity;
   y += velocity;
 
-  // smooth cave movement
-  if (Math.abs(centerY - targetCenterY) < 5) {
-    targetCenterY = Math.random() * (canvas.height - gap) + gap / 2;
+  if (Math.random() < changeRate) {
+    targetCenterY += (Math.random() - 0.5) * roughness;
   }
 
-  centerY += (targetCenterY - centerY) * 0.05;
+  targetCenterY = Math.max(gap/2 + 40, Math.min(canvas.height - gap/2 - 40, targetCenterY));
 
-  // move segments
+  centerY += (targetCenterY - centerY) * 0.25;
+
   for (let s of segments) {
     s.x -= speed;
   }
 
-  // remove off screen
   if (segments[0].x + segmentWidth < 0) {
     segments.shift();
   }
 
-  // add new segment
   let last = segments[segments.length - 1];
+  let variation = (Math.random() - 0.5) * 140;
+
   segments.push({
     x: last.x + segmentWidth,
-    center: centerY
+    center: centerY + variation
   });
 }
 
-// ===== COLLISION =====
+// COLLISION
 function checkCollision() {
   for (let s of segments) {
     if (x + size > s.x && x < s.x + segmentWidth) {
+
       let top = s.center - gap / 2;
       let bottom = s.center + gap / 2;
 
@@ -98,6 +103,7 @@ function checkCollision() {
   if (y < 0 || y + size > canvas.height) reset();
 }
 
+// RESET
 function reset() {
   y = canvas.height / 2;
   velocity = 0;
@@ -114,9 +120,8 @@ function reset() {
   }
 }
 
-// ===== DRAW =====
+// DRAW
 function draw() {
-  // background
   let grad = ctx.createLinearGradient(0,0,0,canvas.height);
   grad.addColorStop(0,"#0a0a0a");
   grad.addColorStop(1,"#1a1a1a");
@@ -125,36 +130,29 @@ function draw() {
 
   ctx.fillStyle = "#555";
 
-  // draw ceiling
   ctx.beginPath();
   ctx.moveTo(0, 0);
-
   for (let s of segments) {
     ctx.lineTo(s.x, s.center - gap / 2);
   }
-
   ctx.lineTo(canvas.width, 0);
   ctx.closePath();
   ctx.fill();
 
-  // draw floor
   ctx.beginPath();
   ctx.moveTo(0, canvas.height);
-
   for (let s of segments) {
     ctx.lineTo(s.x, s.center + gap / 2);
   }
-
   ctx.lineTo(canvas.width, canvas.height);
   ctx.closePath();
   ctx.fill();
 
-  // dragon
   ctx.fillStyle = "red";
   ctx.fillRect(x, y, size, size);
 }
 
-// ===== LOOP =====
+// LOOP
 function loop() {
   update();
   checkCollision();
