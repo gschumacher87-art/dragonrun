@@ -35,15 +35,21 @@ function flap() {
   velocity = lift;
 }
 
-// ===== CAVE =====
-let caves = [];
-let gap = 220;
-let width = 120;
+// ===== CAVE (CONTINUOUS) =====
+let segments = [];
+let segmentWidth = 20;
 let speed = 3;
 
-function spawnCave() {
-  const topHeight = Math.random() * (canvas.height - gap);
-  caves.push({ x: canvas.width, top: topHeight });
+let gap = 220;
+let centerY = canvas.height / 2;
+let targetCenterY = centerY;
+
+// INIT SEGMENTS
+for (let i = 0; i < canvas.width / segmentWidth + 2; i++) {
+  segments.push({
+    x: i * segmentWidth,
+    center: centerY
+  });
 }
 
 // ===== UPDATE =====
@@ -51,22 +57,39 @@ function update() {
   velocity += gravity;
   y += velocity;
 
-  if (caves.length === 0 || caves[caves.length - 1].x < canvas.width - 300) {
-    spawnCave();
+  // smooth cave movement
+  if (Math.abs(centerY - targetCenterY) < 5) {
+    targetCenterY = Math.random() * (canvas.height - gap) + gap / 2;
   }
 
-  for (let c of caves) {
-    c.x -= speed;
+  centerY += (targetCenterY - centerY) * 0.05;
+
+  // move segments
+  for (let s of segments) {
+    s.x -= speed;
   }
 
-  caves = caves.filter(c => c.x + width > 0);
+  // remove off screen
+  if (segments[0].x + segmentWidth < 0) {
+    segments.shift();
+  }
+
+  // add new segment
+  let last = segments[segments.length - 1];
+  segments.push({
+    x: last.x + segmentWidth,
+    center: centerY
+  });
 }
 
 // ===== COLLISION =====
 function checkCollision() {
-  for (let c of caves) {
-    if (x + size > c.x && x < c.x + width) {
-      if (y < c.top || y + size > c.top + gap) {
+  for (let s of segments) {
+    if (x + size > s.x && x < s.x + segmentWidth) {
+      let top = s.center - gap / 2;
+      let bottom = s.center + gap / 2;
+
+      if (y < top || y + size > bottom) {
         reset();
       }
     }
@@ -78,50 +101,57 @@ function checkCollision() {
 function reset() {
   y = canvas.height / 2;
   velocity = 0;
-  caves = [];
+  segments = [];
+
+  centerY = canvas.height / 2;
+  targetCenterY = centerY;
+
+  for (let i = 0; i < canvas.width / segmentWidth + 2; i++) {
+    segments.push({
+      x: i * segmentWidth,
+      center: centerY
+    });
+  }
 }
 
 // ===== DRAW =====
 function draw() {
-  // background gradient (cave feel)
+  // background
   let grad = ctx.createLinearGradient(0,0,0,canvas.height);
   grad.addColorStop(0,"#0a0a0a");
   grad.addColorStop(1,"#1a1a1a");
   ctx.fillStyle = grad;
   ctx.fillRect(0,0,canvas.width,canvas.height);
 
-  // caves (rough edges instead of flat boxes)
   ctx.fillStyle = "#555";
 
-  for (let c of caves) {
-    drawRock(c.x, 0, width, c.top);
-    drawRock(c.x, c.top + gap, width, canvas.height);
+  // draw ceiling
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+
+  for (let s of segments) {
+    ctx.lineTo(s.x, s.center - gap / 2);
   }
+
+  ctx.lineTo(canvas.width, 0);
+  ctx.closePath();
+  ctx.fill();
+
+  // draw floor
+  ctx.beginPath();
+  ctx.moveTo(0, canvas.height);
+
+  for (let s of segments) {
+    ctx.lineTo(s.x, s.center + gap / 2);
+  }
+
+  ctx.lineTo(canvas.width, canvas.height);
+  ctx.closePath();
+  ctx.fill();
 
   // dragon
   ctx.fillStyle = "red";
   ctx.fillRect(x, y, size, size);
-}
-
-// ===== ROCK DRAW (gives cave feel) =====
-function drawRock(x, y, w, h) {
-  ctx.beginPath();
-  ctx.moveTo(x, y);
-
-  for (let i = 0; i <= w; i += 10) {
-    let offset = Math.random() * 10;
-    ctx.lineTo(x + i, y + offset);
-  }
-
-  ctx.lineTo(x + w, y + h);
-
-  for (let i = w; i >= 0; i -= 10) {
-    let offset = Math.random() * 10;
-    ctx.lineTo(x + i, y + h - offset);
-  }
-
-  ctx.closePath();
-  ctx.fill();
 }
 
 // ===== LOOP =====
