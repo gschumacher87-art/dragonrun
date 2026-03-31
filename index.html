@@ -16,12 +16,9 @@
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-function resize() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-}
-resize();
-window.addEventListener("resize", resize);
+// ===== SET SIZE FIRST (fix) =====
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
 // ===== PLAYER =====
 let y = canvas.height / 2;
@@ -29,6 +26,7 @@ let velocity = 0;
 const gravity = 0.5;
 const lift = -8;
 const size = 30;
+const x = 100;
 
 // ===== INPUT =====
 document.addEventListener("touchstart", flap);
@@ -52,23 +50,41 @@ function spawnCave() {
   });
 }
 
-// ===== LOOP =====
+// ===== UPDATE =====
 function update() {
   velocity += gravity;
   y += velocity;
 
-  // spawn
   if (caves.length === 0 || caves[caves.length - 1].x < canvas.width - 250) {
     spawnCave();
   }
 
-  // move caves
-  for (let i = 0; i < caves.length; i++) {
-    caves[i].x -= speed;
+  for (let c of caves) {
+    c.x -= speed;
   }
 
-  // remove offscreen
   caves = caves.filter(c => c.x + width > 0);
+}
+
+// ===== COLLISION =====
+function checkCollision() {
+  for (let c of caves) {
+    if (x + size > c.x && x < c.x + width) {
+      if (y < c.top || y + size > c.top + gap) {
+        reset();
+      }
+    }
+  }
+
+  if (y < 0 || y + size > canvas.height) {
+    reset();
+  }
+}
+
+function reset() {
+  y = canvas.height / 2;
+  velocity = 0;
+  caves = [];
 }
 
 // ===== DRAW =====
@@ -79,37 +95,21 @@ function draw() {
   // caves
   ctx.fillStyle = "gray";
   for (let c of caves) {
-    // top
     ctx.fillRect(c.x, 0, width, c.top);
-    // bottom
     ctx.fillRect(c.x, c.top + gap, width, canvas.height);
   }
 
-  // dragon (simple box)
+  // dragon
   ctx.fillStyle = "red";
-  ctx.fillRect(100, y, size, size);
+  ctx.fillRect(x, y, size, size);
+
+  // debug text
+  ctx.fillStyle = "white";
+  ctx.font = "20px Arial";
+  ctx.fillText("RUNNING", 20, 40);
 }
 
-// ===== COLLISION =====
-function checkCollision() {
-  for (let c of caves) {
-    if (100 + size > c.x && 100 < c.x + width) {
-      if (y < c.top || y + size > c.top + gap) {
-        reset();
-      }
-    }
-  }
-
-  if (y > canvas.height || y < 0) reset();
-}
-
-function reset() {
-  y = canvas.height / 2;
-  velocity = 0;
-  caves = [];
-}
-
-// ===== GAME LOOP =====
+// ===== LOOP =====
 function loop() {
   update();
   checkCollision();
@@ -118,3 +118,7 @@ function loop() {
 }
 
 loop();
+</script>
+
+</body>
+</html>
