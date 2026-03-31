@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dragon Cave</title>
+<style>
+  body { margin: 0; overflow: hidden; background: black; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+
+<canvas id="game"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+function resize() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener("resize", resize);
+
+// ===== PLAYER =====
+let y = canvas.height / 2;
+let velocity = 0;
+const gravity = 0.5;
+const lift = -8;
+const size = 30;
+
+// ===== INPUT =====
+document.addEventListener("touchstart", flap);
+document.addEventListener("mousedown", flap);
+
+function flap() {
+  velocity = lift;
+}
+
+// ===== CAVE =====
+let caves = [];
+let gap = 180;
+let width = 80;
+let speed = 3;
+
+function spawnCave() {
+  const topHeight = Math.random() * (canvas.height - gap);
+  caves.push({
+    x: canvas.width,
+    top: topHeight
+  });
+}
+
+// ===== LOOP =====
+function update() {
+  velocity += gravity;
+  y += velocity;
+
+  // spawn
+  if (caves.length === 0 || caves[caves.length - 1].x < canvas.width - 250) {
+    spawnCave();
+  }
+
+  // move caves
+  for (let i = 0; i < caves.length; i++) {
+    caves[i].x -= speed;
+  }
+
+  // remove offscreen
+  caves = caves.filter(c => c.x + width > 0);
+}
+
+// ===== DRAW =====
+function draw() {
+  ctx.fillStyle = "black";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // caves
+  ctx.fillStyle = "gray";
+  for (let c of caves) {
+    // top
+    ctx.fillRect(c.x, 0, width, c.top);
+    // bottom
+    ctx.fillRect(c.x, c.top + gap, width, canvas.height);
+  }
+
+  // dragon (simple box)
+  ctx.fillStyle = "red";
+  ctx.fillRect(100, y, size, size);
+}
+
+// ===== COLLISION =====
+function checkCollision() {
+  for (let c of caves) {
+    if (100 + size > c.x && 100 < c.x + width) {
+      if (y < c.top || y + size > c.top + gap) {
+        reset();
+      }
+    }
+  }
+
+  if (y > canvas.height || y < 0) reset();
+}
+
+function reset() {
+  y = canvas.height / 2;
+  velocity = 0;
+  caves = [];
+}
+
+// ===== GAME LOOP =====
+function loop() {
+  update();
+  checkCollision();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+loop();
