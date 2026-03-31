@@ -16,16 +16,26 @@
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-// ===== SET SIZE FIRST (fix) =====
+// ===== SIZE =====
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
+
+// ===== IMAGES =====
+const bg = new Image();
+bg.src = "https://i.imgur.com/8bKQXQp.jpg"; // cave background
+
+const caveTop = new Image();
+caveTop.src = "https://i.imgur.com/6RLQ1bX.png";
+
+const caveBottom = new Image();
+caveBottom.src = "https://i.imgur.com/6RLQ1bX.png";
 
 // ===== PLAYER =====
 let y = canvas.height / 2;
 let velocity = 0;
 const gravity = 0.5;
 const lift = -8;
-const size = 30;
+const size = 40;
 const x = 100;
 
 // ===== INPUT =====
@@ -38,8 +48,8 @@ function flap() {
 
 // ===== CAVE =====
 let caves = [];
-let gap = 180;
-let width = 80;
+let gap = 220;
+let width = 120;
 let speed = 3;
 
 function spawnCave() {
@@ -55,7 +65,7 @@ function update() {
   velocity += gravity;
   y += velocity;
 
-  if (caves.length === 0 || caves[caves.length - 1].x < canvas.width - 250) {
+  if (caves.length === 0 || caves[caves.length - 1].x < canvas.width - 300) {
     spawnCave();
   }
 
@@ -76,9 +86,7 @@ function checkCollision() {
     }
   }
 
-  if (y < 0 || y + size > canvas.height) {
-    reset();
-  }
+  if (y < 0 || y + size > canvas.height) reset();
 }
 
 function reset() {
@@ -89,24 +97,25 @@ function reset() {
 
 // ===== DRAW =====
 function draw() {
-  ctx.fillStyle = "black";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  // background
+  ctx.drawImage(bg, 0, 0, canvas.width, canvas.height);
 
   // caves
-  ctx.fillStyle = "gray";
   for (let c of caves) {
-    ctx.fillRect(c.x, 0, width, c.top);
-    ctx.fillRect(c.x, c.top + gap, width, canvas.height);
+    // top
+    ctx.drawImage(caveTop, c.x, 0, width, c.top);
+
+    // bottom (flip image)
+    ctx.save();
+    ctx.translate(c.x + width, c.top + gap);
+    ctx.scale(-1, -1);
+    ctx.drawImage(caveBottom, 0, 0, width, canvas.height);
+    ctx.restore();
   }
 
-  // dragon
+  // dragon (still simple)
   ctx.fillStyle = "red";
   ctx.fillRect(x, y, size, size);
-
-  // debug text
-  ctx.fillStyle = "white";
-  ctx.font = "20px Arial";
-  ctx.fillText("RUNNING", 20, 40);
 }
 
 // ===== LOOP =====
